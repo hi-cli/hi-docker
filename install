@@ -235,7 +235,7 @@ function run() {
     fi
 
     yum install -y epel-release
-    yum install -y python-cryptography pyOpenSSL.x86_64  
+    yum install -y python-cryptography pyOpenSSL.x86_64 lvm2
 
     remove_docker
 
@@ -244,13 +244,12 @@ function run() {
     yes | vgcreate docker ${storage}${partition}
 
     if [ "$ver" == "" ]; then
-      log_info "trying to install docker legacy"
+      log_info "trying to install docker"
       install_docker_default
     else
       log_info "trying to install docker engine"
       install_docker_engine
     fi
-
 
     lvs -o+seg_monitor
 
