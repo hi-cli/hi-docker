@@ -240,8 +240,8 @@ function run() {
     remove_docker
 
     log_info "create pv and vg"
-    y | pvcreate -ff ${storage}${partition}
-    y | vgcreate docker ${storage}${partition}
+    yes | pvcreate -ff ${storage}${partition}
+    yes | vgcreate docker ${storage}${partition}
 
     if [ "$ver" == "" ]; then
       log_info "trying to install docker"
