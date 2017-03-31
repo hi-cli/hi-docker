@@ -32,7 +32,7 @@ source "${HI_CLI_HOME}/bin/disk/format"
 ###############################################################################
 
 function remove_docker() {
-  log "disable docker service"
+  log_info "disable docker service"
   systemctl stop docker
   systemctl disable docker.service
 
@@ -64,9 +64,9 @@ function remove_docker() {
   rm -rf /run/docker*
   rm -rf /var/run/docker
 
-  log "removing docker ..."
+  log_info "removing docker ..."
   yum list installed | grep docker | awk -v N=1 '{print $N}' | xargs yum -y remove
-  log "docker was removed"
+  log_info "docker was removed"
 }
 
 function add_docker_repo() {
@@ -133,7 +133,7 @@ fi
 function install_docker_default() {
   rm -rf /etc/systemd/system/docker.service.d/override.conf
 
-  log "install docker"
+  log_info "install docker"
 
   yum -y install docker
 
@@ -151,7 +151,7 @@ function install_docker_default() {
 
 
 function install_docker_engine() {
-  log "install docker-engine"
+  log_info "install docker-engine"
   add_docker_repo
   if [ "$ver" == "" ]; then
     yum -y install docker-engine
@@ -180,7 +180,7 @@ function install_docker_engine() {
 
 function run() {
   echo "-------------------------------------------------------------------------"
-  log "main loop ..."
+  log_info "main loop ..."
 
   echo $CMD_LINE
 
@@ -201,7 +201,7 @@ function run() {
   fi
 
   if [ "$config" != "" ]; then
-    log "configure docker"
+    log_info "configure docker"
     echo "" > /etc/systemd/system/docker.service.d/override.conf
     config_docker_options
     systemctl daemon-reload
@@ -212,16 +212,16 @@ function run() {
 
 
   if [ $(lsblk | grep ${storage##*/} | wc -l) == 0 ]; then
-    log "${storage} is not exist!"
+    log_info "${storage} is not exist!"
     exit
   fi
 
   if [ $(vgdisplay | grep docker | wc -l) == 0 ] || [ "$all" == "all" ]; then
 
-    log "setup direct disk mode"
+    log_info "setup direct disk mode"
     echo "-------------------------------------------------------------------------"
     if [ "$new" == "new" ]; then
-      log "formating disk ..."  
+      log_info "formating disk ..."  
       format_disk $storage
     fi
 
@@ -239,15 +239,15 @@ function run() {
 
     remove_docker
 
-    log "create pv and vg"
+    log_info "create pv and vg"
     yes | pvcreate ${storage}${partition}
     yes | vgcreate docker ${storage}${partition}
 
     if [ "$ver" == "" ]; then
-      log "trying to install docker legacy"
+      log_info "trying to install docker legacy"
       install_docker_default
     else
-      log "trying to install docker engine"
+      log_info "trying to install docker engine"
       install_docker_engine
     fi
 
@@ -256,21 +256,21 @@ function run() {
 
   fi # if [ $(vgdisplay | grep docker | wc -l) == 0 ]; then
 
-  log "reload docker.service"
+  log_info "reload docker.service"
   systemctl daemon-reload
 
-  log "enable docker.service"
+  log_info "enable docker.service"
   systemctl enable docker.service
 
-  log "start docker.service"
+  log_info "start docker.service"
   systemctl start docker
 
   if [ "$?" != 0 ]; then
-    log "Failed to start docker"
+    log_info "Failed to start docker"
     exit
   fi
 
-  log "show docker info"
+  log_info "show docker info"
   docker info
   result=$?
 
