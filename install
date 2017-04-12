@@ -29,6 +29,7 @@ source "${HI_CLI_HOME}/bin/colors"
 source "${HI_CLI_HOME}/bin/clap"
 source "${HI_CLI_HOME}/bin/logging"
 source "${HI_CLI_HOME}/bin/disk/format"
+source "${HI_CLI_HOME}/bin/disk/partition"
 ###############################################################################
 
 function remove_docker() {
@@ -149,6 +150,24 @@ function install_docker_default() {
   /usr/bin/docker-storage-setup
 }
 
+function create_lvm_thin_pool() {
+  lv_name=$1
+  storage=$2
+  partition=$3
+  percentage=$4
+
+  yes | pvcreate -ff ${storage}${partition}
+  yes | vgcreate ${lv_name} ${storage}${partition}
+
+  lvcreate --wipesignatures y -n thinpool ${lv_name} -l ${percentage}%VG
+  lvcreate --wipesignatures y -n thinpoolmeta ${lv_name} -l 1%VG
+
+  lvconvert -y --zero n -c 512K --thinpool ${lv_name}/thinpool --poolmetadata ${lv_name}/thinpoolmeta
+
+  echo "activation {\n    thin_pool_autoextend_threshold=80\n    thin_pool_autoextend_percent=20\n}" > /etc/lvm/profile/${lv_name}-thinpool.profile
+
+  lvchange --metadataprofile ${lv_name}-thinpool ${lv_name}/thinpool
+}
 
 function install_docker_engine() {
   log_info "install docker-engine"
@@ -162,14 +181,7 @@ function install_docker_engine() {
   systemctl enable docker.service
   systemctl start docker
 
-  lvcreate --wipesignatures y -n thinpool docker -l ${percentage}%VG
-  lvcreate --wipesignatures y -n thinpoolmeta docker -l 1%VG
-
-  lvconvert -y --zero n -c 512K --thinpool docker/thinpool --poolmetadata docker/thinpoolmeta
-
-  echo "activation {\n    thin_pool_autoextend_threshold=80\n    thin_pool_autoextend_percent=20\n}" > /etc/lvm/profile/docker-thinpool.profile
-
-  lvchange --metadataprofile docker-thinpool docker/thinpool
+  create_lvm_thin_pool "docker" ${storage} ${partition} ${percentage}
 
   config_docker_options
 
