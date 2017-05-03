@@ -135,9 +135,12 @@ function install_docker_default() {
   rm -rf /etc/systemd/system/docker.service.d/override.conf
 
   log_info "install docker"
-
-  yum -y install docker
-
+  if [ "${ver}" == "" ]; then
+    yum -y install docker
+  else
+    yum -y install docker-${ver}
+  fi
+  
   setup_docker_storage
 
   sed -i '/OPTIONS=.*/c\OPTIONS="--selinux-enabled --log-driver=json-file --log-opt max-size=50m --registry-mirror=https://jtt7lvye.mirror.aliyuncs.com"' /etc/sysconfig/docker
