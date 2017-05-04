@@ -258,7 +258,7 @@ function run() {
     yes | pvcreate -ff ${storage}${partition}
     yes | vgcreate docker ${storage}${partition}
 
-    if [ "$ver" == "" ]; then
+    if [ "${docker_engine}" == "" ]; then
       log_info "trying to install docker"
       install_docker_default
     else
