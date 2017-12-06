@@ -4,11 +4,29 @@ source "${HI_CLI_HOME}/bin/colors"
 source "${HI_CLI_HOME}/bin/clap"
 source "${HI_CLI_HOME}/bin/logging"
 ###############################################################################
+function action()
+{
+   image=$1
+
+   if [ "${pull}" != "" ]; then
+      echo "docker pull ${image['img']}:${image['tag']}"
+   elif [ "${push}" != "" ]; then
+      echo "docker push ${image['img']/${registry}/${new_registry}}:${image['tag']}"
+   fi
+
+   #log_debug ""
+   image['img']=""
+   image['time']=""
+   image['id']=""
+   image['tag']=""
+   image['uint']=""
+}
+
 function run() {
 
-echo "==========="
-echo "start ..."
-echo "==========="
+log_info "==========="
+log_info "start ..."
+log_info "==========="
 
 cli="restore docker registry"
 
@@ -22,7 +40,7 @@ if [ "${registry}" == "" ]; then
 fi
 
 if [ "${new_registry}" == "" ]; then
-  new_registry=${registry} 
+  new_registry=${registry}
 fi
 
 if [ "${hosts}" == "" ]; then
@@ -36,67 +54,57 @@ image_count=0
 hit_image_count=0
 
 hi ansible shell ${hosts} docker images | grep -P "${registry}" | grep -v "<none>" | sort | sed "s/\bAbout\b//g" | sed "s/\bago\b//g" | awk '{print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5}' | while read img t id time unit; do
-  
-  # echo === $img $t $id $time $unit ===
+
+  log_debug "=== $img $t $id $time $unit ==="
   time=${time/an/1}
 
   # filter out invalid line
+
+  image_count=$((image_count + 1))
   if [ "${unit}" != "" ] && [ "${units[$unit]}" != "" ]; then
 
     if [ "${tag}" == "" ] || [ "${tag}" == "${t}" ]; then
 
+      if [ "$prev_image" != "" ] && [ "$img" != "$prev_image" ]; then
+        action $image
+      fi
+
+
       if [ "${image['img']}" == "" ]; then
-        
+
         image=( ["img"]=$img ["tag"]=$t ["id"]=$id ["time"]=$time ["unit"]=$unit )
-        # echo "added new image: ${image['img']}, time: ${image['time']} ${image['unit']}"
-      
-      fi 
-      # echo "unit:" $unit
+        log_debug "added new image: ${image['img']}, tag: ${image['tag']} time: ${image['time']} ${image['unit']}"
+
+      fi
+      log_debug "unit: $unit"
       curr_image_age=$(( ${units[$unit]} * ${time} ))
       saved_image_age=$(( ${units[${image["unit"]}]} * ${image["time"]} ))
-      # echo curr_image_age: $curr_image_age vs saved_image_age: $saved_image_age
+      log_debug "curr_image_age: $curr_image_age vs saved_image_age: $saved_image_age"
 
       if [ "${image['img']}" != "" ]; then
         if (( $curr_image_age < $saved_image_age )); then
           image=( ["img"]=$img ["id"]=$id ["time"]=$time ["unit"]=$unit )
-          # echo "replaced new image ${image['img']}"
+          # log_debug "replaced new image ${image['img']}"
         # else
-        #  echo "skipped image $img"
+        # log_debug "skipped image $img"
         fi
       fi
-    
-      image_count=$((image_count + 1))
-    
-      if [ "$prev_image" != "" ] && [ "$img" != "$prev_image" ] || (( $image_count == $image_size )) ; then
-        hit_image_count=$((hit_image_count + 1))
-        
-        if [ "${pull}" != "" ]; then
-          echo "docker pull ${image['img']}:${image['tag']}"
-        elif [ "${push}" != "" ]; then
-          echo "docker push ${image['img']/${registry}/${new_registry}}:${image['tag']}"
-        # find the image
-        
 
-        # push image
-
-        fi
-
-        #echo ""
-        image['img']=""
-        image['time']=""
-        image['id']=""
-        image['uint']=""
+      log_debug "image count: $image_count/$image_size"
+      if (( $image_count == $image_size )) ; then
+         hit_image_count=$((hit_image_count + 1))
+         action $image
       fi
-      
+
       prev_image=$img
     fi
   fi
 done
   result=$?
 
-echo "============="
-echo "done ..."
-echo "============="
+log_info "============="
+log_info "done ..."
+log_info "============="
 
 
   eval $1="\${result}"
