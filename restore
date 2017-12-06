@@ -47,13 +47,15 @@ if [ "${hosts}" == "" ]; then
   hosts=all
 fi
 
+export hide_version=yes
+
 image_size=$(hi ansible shell ${hosts} docker images | grep -P "${registry}" | grep -v "<none>" | sort | wc -l)
 
 image_count=0
 
 hit_image_count=0
 
-hi ansible shell ${hosts} docker images | grep -P "${registry}" | grep -v "<none>" | sort | sed "s/\bAbout\b//g" | sed "s/\bago\b//g" | awk '{print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5}' | while read img t id time unit; do
+ hi ansible shell ${hosts} docker images | grep -P "${registry}" | grep -v "<none>" | sort | sed "s/\bAbout\b//g" | sed "s/\bago\b//g" | awk '{print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5}' | while read img t id time unit; do
 
   log_debug "=== $img $t $id $time $unit ==="
   time=${time/an/1}
