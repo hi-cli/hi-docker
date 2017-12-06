@@ -86,9 +86,9 @@ hit_image_count=0
       if [ "${image['img']}" != "" ]; then
         if (( $curr_image_age < $saved_image_age )); then
           image=( ["img"]=$img ["id"]=$id ["time"]=$time ["unit"]=$unit )
-          # log_debug "replaced new image ${image['img']}"
-        # else
-        # log_debug "skipped image $img"
+          log_debug "replaced new image ${image['img']}"
+        else
+          log_debug "skipped image $img"
         fi
       fi
 
