@@ -30,15 +30,11 @@ source "${HI_CLI_HOME}/bin/clap"
 source "${HI_CLI_HOME}/bin/logging"
 ###############################################################################
 function run() {
-  cli="hi docker help"
+  cli="hi docker backup"
 
-  log_info "usages:"
-  log_info "install docker,"
-  log_info "  hi docker install all new storage=/dev/sdb"
-  log_info "  assume that you have ansible installed before run below command"
-  log_info "  hi docker restore pull registry="'"'.*'"'" "
-  log_info "  hi docker restore push registry="'"'.*'"'" new_registry=docker.vpclub.cn "
-  log_info ""
+  hi ansible shell nodes docker images | grep ${src} | grep latest | sed s/${src}/${dest}/g | awk '{print $1}' | while read img; do
+    docker pull ${img}:latest
+  done
 
   result=$?
 
