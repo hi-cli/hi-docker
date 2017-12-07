@@ -38,13 +38,12 @@ function run() {
 
   cli="hi docker restore"
 
-
   declare -A units=(["seconds"]=1 ["minute"]=60 ["minutes"]=60 ["hour"]=3600 ["hours"]=3600 ["day"]=86400 ["days"]=86400 ["week"]=604800 ["weeks"]=604800 ["month"]=18144000 ["months"]=18144000  ["year"]=217728000 ["years"]=217728000 )
   declare -A image
   prev_image=""
 
   if [ "${registry}" == "" ]; then
-    registry=172.30.53.243:5000
+    registry=docker.io
   fi
 
   if [ "${new_registry}" == "" ]; then
@@ -62,6 +61,13 @@ function run() {
   image_count=0
 
   hit_image_count=0
+
+  # ensure ansible works
+  hi ansible ping all
+  if (( $? != 0 )); then
+    log_error "ansible does not work properly!"
+    exit 1
+  fi
 
   hi ansible shell ${hosts} docker images | grep -P "${registry}" | grep -v "<none>" | sort | sed "s/\bAbout\b//g" | sed "s/\bago\b//g" | awk '{print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5}' | while read img t id time unit; do
 
