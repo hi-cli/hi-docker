@@ -22,91 +22,96 @@ function action()
    image['uint']=""
 }
 
+function save_image() {
+  cmd=$1
+  image=$2
+  image=( ['img']=$img ['tag']=$t ['id']=$id ['time']=$time ['unit']=$unit )
+  log_debug "${cmd} image: ${image['img']}, tag: ${image['tag']} time: ${image['time']} ${image['unit']}"
+}
+
+
 function run() {
 
-log_info "==========="
-log_info "start ..."
-log_info "==========="
+  log_info "========="
+  log_info "start ..."
+  log_info "========="
 
-cli="restore docker registry"
-
-
-declare -A units=(["seconds"]=1 ["minute"]=60 ["minutes"]=60 ["hour"]=3600 ["hours"]=3600 ["day"]=86400 ["days"]=86400 ["week"]=604800 ["weeks"]=604800 ["month"]=18144000 ["months"]=18144000  ["year"]=217728000 ["years"]=217728000 )
-declare -A image
-prev_image=""
-
-if [ "${registry}" == "" ]; then
-  registry=172.30.53.243:5000
-fi
-
-if [ "${new_registry}" == "" ]; then
-  new_registry=${registry}
-fi
-
-if [ "${hosts}" == "" ]; then
-  hosts=all
-fi
-
-export hide_version=yes
-
-image_size=$(hi ansible shell ${hosts} docker images | grep -P "${registry}" | grep -v "<none>" | sort | wc -l)
-
-image_count=0
-
-hit_image_count=0
-
- hi ansible shell ${hosts} docker images | grep -P "${registry}" | grep -v "<none>" | sort | sed "s/\bAbout\b//g" | sed "s/\bago\b//g" | awk '{print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5}' | while read img t id time unit; do
-
-  log_debug "=== $img $t $id $time $unit ==="
-  time=${time/an/1}
-
-  # filter out invalid line
-
-  image_count=$((image_count + 1))
-  if [ "${unit}" != "" ] && [ "${units[$unit]}" != "" ]; then
-
-    if [ "${tag}" == "" ] || [ "${tag}" == "${t}" ]; then
-
-      if [ "$prev_image" != "" ] && [ "$img" != "$prev_image" ]; then
-        action $image
-      fi
+  cli="hi docker restore"
 
 
-      if [ "${image['img']}" == "" ]; then
+  declare -A units=(["seconds"]=1 ["minute"]=60 ["minutes"]=60 ["hour"]=3600 ["hours"]=3600 ["day"]=86400 ["days"]=86400 ["week"]=604800 ["weeks"]=604800 ["month"]=18144000 ["months"]=18144000  ["year"]=217728000 ["years"]=217728000 )
+  declare -A image
+  prev_image=""
 
-        image=( ["img"]=$img ["tag"]=$t ["id"]=$id ["time"]=$time ["unit"]=$unit )
-        log_debug "added new image: ${image['img']}, tag: ${image['tag']} time: ${image['time']} ${image['unit']}"
-
-      fi
-      log_debug "unit: $unit"
-      curr_image_age=$(( ${units[$unit]} * ${time} ))
-      saved_image_age=$(( ${units[${image["unit"]}]} * ${image["time"]} ))
-      log_debug "curr_image_age: $curr_image_age vs saved_image_age: $saved_image_age"
-
-      if [ "${image['img']}" != "" ]; then
-        if (( $curr_image_age < $saved_image_age )); then
-          image=( ["img"]=$img ["id"]=$id ["time"]=$time ["unit"]=$unit )
-          log_debug "replaced new image ${image['img']}"
-        else
-          log_debug "skipped image $img"
-        fi
-      fi
-
-      log_debug "image count: $image_count/$image_size"
-      if (( $image_count == $image_size )) ; then
-         hit_image_count=$((hit_image_count + 1))
-         action $image
-      fi
-
-      prev_image=$img
-    fi
+  if [ "${registry}" == "" ]; then
+    registry=172.30.53.243:5000
   fi
-done
+
+  if [ "${new_registry}" == "" ]; then
+    new_registry=${registry}
+  fi
+
+  if [ "${hosts}" == "" ]; then
+    hosts=all
+  fi
+
+  export hide_version=yes
+
+  image_size=$(hi ansible shell ${hosts} docker images | grep -P "${registry}" | grep -v "<none>" | sort | wc -l)
+
+  image_count=0
+
+  hit_image_count=0
+
+  hi ansible shell ${hosts} docker images | grep -P "${registry}" | grep -v "<none>" | sort | sed "s/\bAbout\b//g" | sed "s/\bago\b//g" | awk '{print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5}' | while read img t id time unit; do
+
+    log_debug "=== $img $t $id $time $unit ==="
+    time=${time/an/1}
+
+    # filter out invalid line
+    image_count=$((image_count + 1))
+    if [ "${unit}" != "" ] && [ "${units[$unit]}" != "" ]; then
+
+      if [ "${tag}" == "" ] || [ "${tag}" == "${t}" ]; then
+
+        if [ "$prev_image" != "" ] && [ "$img" != "$prev_image" ]; then
+          action $image
+        fi
+
+
+        if [ "${image['img']}" == "" ]; then
+          save_image "add" $image
+        fi
+
+        log_debug "unit: $unit"
+        curr_image_age=$(( ${units[$unit]} * ${time} ))
+        saved_image_age=$(( ${units[${image['unit']}]} * ${image['time']} ))
+        log_debug "curr_image_age: $curr_image_age vs saved_image_age: $saved_image_age"
+
+        if [ "${image['img']}" != "" ]; then
+          if (( $curr_image_age < $saved_image_age )); then
+            save_image "replace" $image
+          else
+            log_debug "skipped image $img"
+          fi
+        fi
+
+        prev_image=$img
+      fi
+    fi
+
+    log_debug "image count: $image_count/$image_size"
+    if (( $image_count == $image_size )) ; then
+      hit_image_count=$((hit_image_count + 1))
+      action $image
+    fi
+  done
+
   result=$?
 
-log_info "============="
-log_info "done ..."
-log_info "============="
+  log_info "========="
+  log_info "done ..."
+  log_info "========="
 
 
   eval $1="\${result}"
