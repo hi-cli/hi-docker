@@ -1,17 +1,44 @@
-#!/bin/bash
-
+#!/usr/bin/env bash
+###############################################################################
+# Project: hi-cli
+# Description: The cross platform development toolkit - hi-cli
+# Author: John Deng (john.deng@outlook.com)
+#
+# Copyright (c) 2014-2017 John Deng (john.deng@outlook.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Author: John Deng (john.deng@outlook.com)
+# Updated: Thu Mar 30 12:55:46 CST 2017
+# Module: docker
+# Submodule: 
+# Command: install
+###############################################################################
 source "${HI_CLI_HOME}/bin/colors"
 source "${HI_CLI_HOME}/bin/clap"
 source "${HI_CLI_HOME}/bin/logging"
 ###############################################################################
+
 function action()
 {
    image=$1
+   image_host=$2
 
    if [ "${pull}" != "" ]; then
       echo "docker pull ${image['img']}:${image['tag']}"
    elif [ "${push}" != "" ]; then
-      echo "docker push ${image['img']/${registry}/${new_registry}}:${image['tag']}"
+      id=${image['id']}
+      echo "docker push ${image['img']/${registry}/${new_registry}}:${image['tag']} # ${id} => ${image_host[${id}]} "  
    fi
 
    #log_debug ""
@@ -32,18 +59,22 @@ function save_image() {
 
 function run() {
 
-  log_info "========="
   log_info "start ..."
   log_info "========="
+  echo ""
 
   cli="hi docker restore"
 
+  log_debug "declare map ..."
+
   declare -A units=(["seconds"]=1 ["minute"]=60 ["minutes"]=60 ["hour"]=3600 ["hours"]=3600 ["day"]=86400 ["days"]=86400 ["week"]=604800 ["weeks"]=604800 ["month"]=18144000 ["months"]=18144000  ["year"]=217728000 ["years"]=217728000 )
   declare -A image
-  prev_image=""
+  declare -A image_host
+
+  log_debug "prepare variables ..."
 
   if [ "${registry}" == "" ]; then
-    registry=docker.io
+    registry=docker-registry.default.svc:5000
   fi
 
   if [ "${new_registry}" == "" ]; then
@@ -51,73 +82,107 @@ function run() {
   fi
 
   if [ "${hosts}" == "" ]; then
-    hosts=all
+    hosts=nodes
   fi
 
-  export hide_version=yes
+  # fill all image tag to a map
+  i_size=$(hi ansible shell ${hosts} docker images | wc -l)
+  hi ansible shell ${hosts} docker images | awk '{print $1 "\t" $3 }' | while read img id ; do
 
-  image_size=$(hi ansible shell ${hosts} docker images | grep -P "${registry}" | grep -v "<none>" | sort | wc -l)
+    i_count=$((i_count + 1))
+    if [ $(echo "${img}" | grep 'openshift-ha' | wc -l) == 1 ]; then
+      log_debug "host: $img ============================"
+      current_host=${img}
+    elif [ ${#id} == 12 ]; then
+      image_host+=(["${id}"]=${current_host}) 
+      log_debug "image_host+=([${id}]=${current_host}) "
+      log_debug "saved image_host: ${image_host[${id}]}"
+    fi
+    log_debug "img: $img, id: $id"
 
-  image_count=0
+    if (( $i_count == $i_size )) || [ "${pull}" != "" ]; then
+      log_debug "last image ...."
+      log_debug "iterating..."
+      for i in "${!image_host[@]}"
+      do
+        log_debug "$i: ${image_host[$i]}"
+      done
 
-  hit_image_count=0
+      prev_image=""
 
-  # ensure ansible works
-  hi ansible ping all
-  if (( $? != 0 )); then
-    log_error "ansible does not work properly!"
-    exit 1
-  fi
+      # calculating images 
+      export hide_version=yes
 
-  hi ansible shell ${hosts} docker images | grep -P "${registry}" | grep -v "<none>" | sort | sed "s/\bAbout\b//g" | sed "s/\bago\b//g" | awk '{print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5}' | while read img t id time unit; do
+      log_debug "calculating images ..."
 
-    log_debug "=== $img $t $id $time $unit ==="
-    time=${time/an/1}
+      log_debug "hi ansible shell ${hosts} docker images | grep -P "${registry}" | grep -v "\<none\>" | sort | wc -l"
 
-    # filter out invalid line
-    image_count=$((image_count + 1))
-    if [ "${unit}" != "" ] && [ "${units[$unit]}" != "" ]; then
+      image_size=$(hi ansible shell ${hosts} docker images | grep -P "${registry}" | grep -v "\<none\>" | sort | wc -l)
 
-      if [ "${tag}" == "" ] || [ "${tag}" == "${t}" ]; then
+      log_debug "calculated image size: ${image_size}"
 
-        if [ "$prev_image" != "" ] && [ "$img" != "$prev_image" ]; then
-          action $image
-        fi
+      image_count=0
 
+      hit_image_count=0
 
-        if [ "${image['img']}" == "" ]; then
-          save_image "add" $image
-        fi
+      hi ansible shell ${hosts} docker images | grep -P "${registry}" | grep -v "\<none\>" | sort | sed "s/\bAbout\b//g" | sed "s/\bago\b//g" | awk '{print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5}' | while read img t id time unit; do
 
-        log_debug "unit: $unit"
-        curr_image_age=$(( ${units[$unit]} * ${time} ))
-        saved_image_age=$(( ${units[${image['unit']}]} * ${image['time']} ))
-        log_debug "curr_image_age: $curr_image_age vs saved_image_age: $saved_image_age"
+        log_debug "=== $img $t $id $time $unit ==="
+        time=${time/an/1}
 
-        if [ "${image['img']}" != "" ]; then
-          if (( $curr_image_age < $saved_image_age )); then
-            save_image "replace" $image
-          else
-            log_debug "skipped image $img"
+        # filter out invalid line
+
+        image_count=$((image_count + 1))
+        if [ "${unit}" != "" ] && [ "${units[$unit]}" != "" ]; then
+
+          if [ "${tag}" == "" ] || [ "${tag}" == "${t}" ]; then
+
+            if [ "$prev_image" != "" ] && [ "$img" != "$prev_image" ]; then
+              action $image $image_host
+            fi
+
+            if [ "${image['img']}" == "" ]; then
+              save_image "add" $image
+              #image=( ['img']=$img ['tag']=$t ['id']=$id ['time']=$time ['unit']=$unit )
+              #log_debug "added new image: ${image['img']}, tag: ${image['tag']} time: ${image['time']} ${image['unit']}"
+
+            fi
+            log_debug "unit: $unit"
+            curr_image_age=$(( ${units[$unit]} * ${time} ))
+            saved_image_age=$(( ${units[${image['unit']}]} * ${image['time']} ))
+            log_debug "curr_image_age: $curr_image_age vs saved_image_age: $saved_image_age"
+
+            if [ "${image['img']}" != "" ]; then
+              if (( $curr_image_age < $saved_image_age )); then
+                #image=( ["img"]=$img ["id"]=$id ["time"]=$time ["unit"]=$unit )
+                #log_debug "replaced new image ${image['img']}"
+                save_image "replace" $image
+              else
+                log_debug "skipped image $img"
+              fi
+            fi
+
+            prev_image=$img
           fi
         fi
 
-        prev_image=$img
-      fi
-    fi
+        log_debug "image count: $image_count/$image_size"
+        if (( $image_count == $image_size )) ; then
+          hit_image_count=$((hit_image_count + 1))
+          action $image $image_host
+        fi
+      done
 
-    log_debug "image count: $image_count/$image_size"
-    if (( $image_count == $image_size )) ; then
-      hit_image_count=$((hit_image_count + 1))
-      action $image
+      break 
     fi
   done
 
   result=$?
 
+  echo ""
   log_info "========="
   log_info "done ..."
-  log_info "========="
+  echo ""
 
 
   eval $1="\${result}"
