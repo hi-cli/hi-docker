@@ -24,33 +24,43 @@
 # Submodule: 
 # Command: install
 ###############################################################################
-source "${HI_CLI_HOME}/bin/colors"
-source "${HI_CLI_HOME}/bin/clap"
-source "${HI_CLI_HOME}/bin/logging"
-###############################################################################
 
 function action()
 {
-  host=$1
-  image=$2
-  image_tag=$3
-  age=$4
-  image_id=$5
+  l_host=$1
+  l_image=$2
+  l_image_tag=$3
+  l_age=$4
+  l_image_id=$5
+  l_image_size=$6
 
-   if [ "${pull}" != "" ]; then
-      echo "docker pull ${image}:${image_tag}"
+   if [ "${show}" != "" ]; then
+      # show docker image ...
+
+      echo "${l_host} ${l_image}:${l_image_tag} ${l_image_id}"
+   elif [ "${pull}" != "" ]; then
+
+      docker pull ${l_image}:${l_image_tag}
    elif [ "${push}" != "" ]; then
       # restored to docker registry ...
-      echo "${host} ${image}:${image_tag} ${image_id}"  
+      log_info "${l_host} ${l_image}:${l_image_tag} ${l_image_id}"
 
-      # 在这里添加代码导镜像并推到镜像库
-
-      # ...
-
+      l_push_tag=${l_image/${registry}/${new_registry}}:${l_image_tag}
+      log_debug "ssh root@${l_host} docker save ${l_image}:${l_image_tag} | docker load && "
+      log_debug "docker tag  ${l_image}:${l_image_tag} ${l_push_tag}"
+      log_debug "docker push  ${l_push_tag}"
+      # save, load, and push to registry
+      ssh -v root@${l_host} "docker save ${l_image}:${l_image_tag} " | docker load && \
+        docker tag ${l_image}:${l_image_tag} ${l_push_tag} && \
+        docker push ${l_push_tag}
    fi
 }
 
 function run() {
+
+  input registry "registry" "${registry}" "${default_registry}"
+  input new_registry "new_registry" "${new_registry}" "${default_registry}"
+  input hosts "hosts" "${hosts}" "${default_hosts}"
 
   # log_info "start ..."
   # log_info "========="
@@ -95,7 +105,7 @@ function run() {
     time=${time/an/1}
     
     if [ "${id}" == "SUCCESS" ]; then
-      log_debug "host: $img ============================"
+      log_debug "============================ host: $img ============================"
       current_host=${img}
     elif [ ${#id} == 12 ] && [ "${unit}" != "" ] && [ "${units[$unit]}" != "" ] && [[ $(echo "${img}" | grep -P "${registry}") != "" ]]; then
       if [ "${tag}" == "" ] || [ "${tag}" == "${t}" ]; then
@@ -136,13 +146,18 @@ function run() {
     fi
 
     if (( $i_count == $item_size )); then
-      log_info "Found all latest images, restored ..."
-      echo ""
-      for i in "${!latest_images[@]}"
-      do
-        id=${latest_images[${i}]}
-        action ${images[${id}]} ${id}
-      done
+      latest_image_size=${#latest_images[@]}
+      if (( ${latest_image_size} == 0 )); then
+        log_warn "No image was found!"
+      else 
+        log_info "Found ${latest_image_size} latest images ..."
+        echo ""
+        for i in "${!latest_images[@]}"
+        do
+          id=${latest_images[${i}]}
+          action ${images[${id}]} ${id} ${latest_image_size}
+        done
+      fi
     fi
   done
 
@@ -152,7 +167,6 @@ function run() {
   # log_info "========="
   # log_info "done ..."
   echo ""
-
 
   eval $1="\${result}"
   eval $2="\${cli}"
