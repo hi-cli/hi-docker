@@ -40,6 +40,7 @@ function action()
    if [ "${pull}" != "" ]; then
       echo "docker pull ${image}:${image_tag}"
    elif [ "${push}" != "" ]; then
+      # restored to docker registry ...
       echo "${host} ${image}:${image_tag} ${image_id}"  
    fi
 }
@@ -126,7 +127,7 @@ function run() {
     fi
 
     if (( $i_count == $item_size )); then
-      log_info "restored below images ..."
+      log_info "Found all latest images, restored ..."
       echo ""
       for i in "${!latest_images[@]}"
       do
