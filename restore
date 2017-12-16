@@ -42,6 +42,11 @@ function action()
    elif [ "${push}" != "" ]; then
       # restored to docker registry ...
       echo "${host} ${image}:${image_tag} ${image_id}"  
+
+      # 在这里添加代码导镜像并推到镜像库
+
+      # ...
+
    fi
 }
 
