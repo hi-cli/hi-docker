@@ -101,7 +101,11 @@ function run() {
       if [ "${tag}" == "" ] || [ "${tag}" == "${t}" ]; then
         # all images are added to images map
         age=$(( ${units[$unit]} * ${time} ))
-        images+=(["${id}"]="${current_host} ${img} ${t} ${age}") 
+
+        # no need to add the same image twice
+        if [[ ${images[${id}]} == "" ]]; then
+          images+=(["${id}"]="${current_host} ${img} ${t} ${age}") 
+        fi
 
         log_debug "=== ${id}: ${images[${id}]} ==="
 
