@@ -36,10 +36,8 @@ function action()
 
    if [ "${show}" != "" ]; then
       # show docker image ...
-
       echo "${l_host} ${l_image}:${l_image_tag} ${l_image_id}"
    elif [ "${pull}" != "" ]; then
-
       docker pull ${l_image}:${l_image_tag}
    elif [ "${push}" != "" ]; then
       # restored to docker registry ...
@@ -50,7 +48,9 @@ function action()
       log_debug "docker tag  ${l_image}:${l_image_tag} ${l_push_tag}"
       log_debug "docker push  ${l_push_tag}"
       # save, load, and push to registry
-      ssh -v root@${l_host} "docker save ${l_image}:${l_image_tag} " | docker load && \
+      [ "${debug}" != "" ] && l_verbose="-v"
+      
+      ssh ${l_verbose} root@${l_host} "docker save ${l_image}:${l_image_tag} " | docker load && \
         docker tag ${l_image}:${l_image_tag} ${l_push_tag} && \
         docker push ${l_push_tag}
    fi
@@ -109,6 +109,8 @@ function run() {
       current_host=${img}
     elif [ ${#id} == 12 ] && [ "${unit}" != "" ] && [ "${units[$unit]}" != "" ] && [[ $(echo "${img}" | grep -P "${registry}") != "" ]]; then
       if [ "${tag}" == "" ] || [ "${tag}" == "${t}" ]; then
+        log_info "$img $t $id $time $unit"
+
         # all images are added to images map
         age=$(( ${units[$unit]} * ${time} ))
 
