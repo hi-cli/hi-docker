@@ -6,7 +6,7 @@
 
 2. Install hi-docker package
 ```
-hi package install docker
+hi install docker
 ```
 
 3. Install docker
