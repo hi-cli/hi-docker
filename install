@@ -164,7 +164,7 @@ function install_docker_ce() {
 
   cat > /etc/docker/daemon.json <<_EOF
 {
-  "registry-mirrors": ["https://registry.docker-cn.com", "https://docker.mirrors.ustc.edu.cn"],
+  "registry-mirrors": ["https://registry.docker-cn.com"],
   "insecure-registries":["${registry}"],
   "max-concurrent-downloads": 10,
   "log-driver": "json-file",
