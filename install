@@ -290,14 +290,14 @@ function run() {
     yes | pvcreate -ff ${storage}${partition}
     yes | vgcreate docker ${storage}${partition}
 
-    if [ "${docker_engine}" != "" ]; then
-      log_info "install docker"
+    if [ "${engine}" == "engine" ]; then
+      log_info "install docker engine"
       install_docker_engine
-    elif [ "${docker_ce}" == "" ]; then
+    elif [ "${ce}" == "ce" ]; then
       log_info "install docker ce"
       install_docker_ce
     else
-      log_info "install docker engine"
+      log_info "install docker default version "
       install_docker_default
     fi
 

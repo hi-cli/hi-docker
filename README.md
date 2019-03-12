@@ -13,15 +13,16 @@ hi install docker
 ### Install docker
 
 ```bash
-hi docker install all new storage=/dev/sdb
+hi docker install ce all new storage=/dev/sdb
 ```
 
 Parameters:
 
-| Parameter | Default | Description |
-|:--|:--|:--|
-|all||reinstall all|
-|new||new installation|
-|storage|/dev/sdb|docker storage destination|
-|percentage|98|percentage of storage being used, 98 means 98% of storage is used|
-|partition|1|disk partition number, e.g. /dev/sdb1|
+| Parameter  | Default  | Description                                                       |
+|:-----------|:---------|:------------------------------------------------------------------|
+| ce         | default  | ce engine default                                                 |
+| all        |          | reinstall all                                                     |
+| new        |          | new installation                                                  |
+| storage    | /dev/sdb | docker storage destination                                        |
+| percentage | 98       | percentage of storage being used, 98 means 98% of storage is used |
+| partition  | 1        | disk partition number, e.g. /dev/sdb1                             |
