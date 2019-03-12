@@ -153,6 +153,38 @@ function install_docker_default() {
   /usr/bin/docker-storage-setup
 }
 
+
+function install_docker_ce() {
+  yum install -y yum-utils device-mapper-persistent-data lvm2
+  yum-config-manager  --add-repo   https://download.docker.com/linux/centos/docker-ce.repo
+  yum-config-manager --enable docker-ce-nightly
+  yum-config-manager --enable docker-ce-test
+  yum install -y docker-ce docker-ce-cli containerd.io
+  setup_docker_storage
+
+  cat > /etc/docker/daemon.json <<_EOF
+{
+  "registry-mirrors": ["http://${registry}","https://registry.docker-cn.com", "https://docker.mirrors.ustc.edu.cn"],
+  "insecure-registries":["${registry}"],
+  "max-concurrent-downloads": 10,
+  "log-driver": "json-file",
+  "log-level": "warn",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+    },
+  "data-root": "/var/lib/docker"
+}
+_EOF
+
+  systemctl stop docker
+  rm -rf /var/lib/docker
+
+  /usr/bin/docker-storage-setup
+
+}
+
+
 function create_lvm_thin_pool() {
   lv_name=$1
   storage=$2
@@ -258,12 +290,15 @@ function run() {
     yes | pvcreate -ff ${storage}${partition}
     yes | vgcreate docker ${storage}${partition}
 
-    if [ "${docker_engine}" == "" ]; then
-      log_info "trying to install docker"
-      install_docker_default
-    else
-      log_info "trying to install docker engine"
+    if [ "${docker_engine}" != "" ]; then
+      log_info "install docker"
       install_docker_engine
+    elif [ "${docker_ce}" == "" ]; then
+      log_info "install docker ce"
+      install_docker_ce
+    else
+      log_info "install docker engine"
+      install_docker_default
     fi
 
     lvs -o+seg_monitor
