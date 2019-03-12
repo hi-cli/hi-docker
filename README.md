@@ -13,7 +13,7 @@ hi install docker
 ### Install docker
 
 ```bash
-hi docker install ce all new storage=/dev/sdb registry=
+hi docker install ce all new storage=/dev/sdb registry=[registry.com]
 ```
 
 Parameters:
