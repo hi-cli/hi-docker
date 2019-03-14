@@ -21,22 +21,21 @@
 # Author: John Deng (john.deng@outlook.com)
 # Updated: Mon Mar 27 23:24:29 CST 2017
 # Module: docker
-# Submodule: 
+# Submodule:
 # Command: version
 ###############################################################################
 
 source "${HI_CLI_HOME}/bin/colors"
 source "${HI_CLI_HOME}/bin/logging"
-source "${module_dir}/utils/common"
 ###############################################################################
-module_version="1.0.0"
+module_version="1.0.1"
 ###############################################################################
 
 function run() {
-  
-  log_info "version: ${module_version}"
-  log_info "updated time: 2018-01-26"
-
+    
+    log_info "version: ${module_version}"
+    log_info "updated time: 2018-01-26"
+    
 }
 
 ###############################################################################

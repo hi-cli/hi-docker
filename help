@@ -21,7 +21,7 @@
 # Author: John Deng (john.deng@outlook.com)
 # Updated: Tue May  2 11:23:10 CST 2017
 # Module: docker
-# Submodule: 
+# Submodule:
 # Command: help
 ###############################################################################
 
@@ -30,20 +30,20 @@ source "${HI_CLI_HOME}/bin/clap"
 source "${HI_CLI_HOME}/bin/logging"
 ###############################################################################
 function run() {
-  cli="hi docker help"
-
-  log_info "usages:"
-  log_info "install docker,"
-  log_info "  hi docker install all new storage=/dev/sdb"
-  log_info "  assume that you have ansible installed before run below command"
-  log_info "  hi docker restore pull registry="'"'.*'"'" "
-  log_info "  hi docker restore push registry="'"'.*'"'" new_registry=docker.vpclub.cn "
-  log_info ""
-
-  result=$?
-
-  eval $1="\${result}"
-  eval $2="\${cli}"
+    cli="hi docker help"
+    
+    log_info "usages:"
+    log_info "install docker,"
+    log_info "  hi docker install ce all new storage=/dev/sdb registry=[registry e.g. harbor.company.com]"
+    log_info "  assume that you have ansible installed before run below command"
+    log_info "  hi docker restore pull registry="'"'.*'"'" "
+    log_info "  hi docker restore push registry="'"'.*'"'" new_registry=docker.vpclub.cn "
+    log_info ""
+    
+    result=$?
+    
+    eval $1="\${result}"
+    eval $2="\${cli}"
 }
 
 ###############################################################################
