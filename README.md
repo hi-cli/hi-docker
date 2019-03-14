@@ -4,9 +4,9 @@
 
 ### Install [hi-cli](https://github.com/hi-cli/hi-cli)
 
-### Install hi-docker package
 
-```bash
+### Install hi-docker package
+```
 hi install docker
 ```
 
@@ -27,3 +27,4 @@ Parameters:
 | percentage | 98       | percentage of storage being used, 98 means 98% of storage is used |
 | partition  | 1        | disk partition number, e.g. /dev/sdb1                             |
 | registry   |          | local insecure registry, e.g. harbor.company.com                  |
+
