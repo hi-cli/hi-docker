@@ -153,6 +153,20 @@ function install_docker_default() {
   /usr/bin/docker-storage-setup
 }
 
+function setup_docker_storage_ce(){
+ if [ -f "/etc/sysconfig/docker-storage-setup" ];then
+    rm -f /etc/sysconfig/docker-storage-setup
+ fi
+  cat > /etc/sysconfig/docker-storage-setup <<_EOF_
+STORAGE_DRIVER=overlay2
+DEVS=/dev/sdb
+CONTAINER_ROOT_LV_NAME=docker
+CONTAINER_ROOT_LV_SIZE=${percentage}%FREE
+CONTAINER_ROOT_LV_MOUNT_PATH=/var/lib/docker
+VG=docker
+WIPE_SIGNATURES=true
+_EOF_
+}
 
 function install_docker_ce() {
   yum install -y yum-utils device-mapper-persistent-data lvm2
@@ -160,12 +174,16 @@ function install_docker_ce() {
   yum-config-manager --enable docker-ce-nightly
   yum-config-manager --enable docker-ce-test
   yum install -y docker-ce docker-ce-cli containerd.io
-  setup_docker_storage
+  setup_docker_storage_ce
 
+ if [ -f "/etc/docker/daemon.json" ];then
+    rm -f /etc/docker/daemon.json
+ fi
   cat > /etc/docker/daemon.json <<_EOF
 {
   "registry-mirrors": ["https://registry.docker-cn.com"],
   "insecure-registries":["${registry}"],
+  "storage-driver": "overlay2",
   "max-concurrent-downloads": 10,
   "log-driver": "json-file",
   "log-level": "warn",
@@ -178,9 +196,9 @@ function install_docker_ce() {
 _EOF
 
   systemctl stop docker
+  container-storage-setup --reset
   rm -rf /var/lib/docker
-
-  /usr/bin/docker-storage-setup
+  container-storage-setup
 
 }
 
