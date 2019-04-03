@@ -176,13 +176,23 @@ function install_docker_ce() {
   yum install -y docker-ce docker-ce-cli containerd.io
   setup_docker_storage_ce
 
- if [ -f "/etc/docker/daemon.json" ];then
-    rm -f /etc/docker/daemon.json
- fi
+  insecure_registry=
+  if [ "${registry}" == "" ]; then
+      insecure_registry="\"insecure-registries\":[\"${registry}\"],"
+  fi
+
+  registry_mirror=
+  if [ "${mirror}" == "" ]; then
+      registry_mirror="\"registry-mirrors\": [\"${mirror}\"],"
+  fi
+
+  if [ -f "/etc/docker/daemon.json" ];then
+      rm -f /etc/docker/daemon.json
+  fi
   cat > /etc/docker/daemon.json <<_EOF
 {
-  "registry-mirrors": ["https://registry.docker-cn.com"],
-  "insecure-registries":["${registry}"],
+  ${registry_mirror}
+  ${insecure_registry}
   "storage-driver": "overlay2",
   "max-concurrent-downloads": 10,
   "log-driver": "json-file",
