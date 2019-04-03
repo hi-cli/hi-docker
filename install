@@ -177,12 +177,12 @@ function install_docker_ce() {
   setup_docker_storage_ce
 
   insecure_registry=
-  if [ "${registry}" == "" ]; then
+  if [ "${registry}" != "" ]; then
       insecure_registry="\"insecure-registries\":[\"${registry}\"],"
   fi
 
   registry_mirror=
-  if [ "${mirror}" == "" ]; then
+  if [ "${mirror}" != "" ]; then
       registry_mirror="\"registry-mirrors\": [\"${mirror}\"],"
   fi
 
