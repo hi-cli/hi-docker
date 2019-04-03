@@ -159,7 +159,7 @@ function setup_docker_storage_ce(){
  fi
   cat > /etc/sysconfig/docker-storage-setup <<_EOF_
 STORAGE_DRIVER=overlay2
-DEVS=/dev/sdb
+DEVS=${storage}
 CONTAINER_ROOT_LV_NAME=docker
 CONTAINER_ROOT_LV_SIZE=${percentage}%FREE
 CONTAINER_ROOT_LV_MOUNT_PATH=/var/lib/docker
