@@ -292,7 +292,7 @@ function run() {
   fi
 
 
-  if [ $(lsblk | grep ${storage##*/} | wc -l) == 0 ]; then
+  if [ "$new" == "new" ] && [ $(lsblk | grep ${storage##*/} | wc -l) == 0 ]; then
     log_info "${storage} is not exist!"
     exit
   fi
