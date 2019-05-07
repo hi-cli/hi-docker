@@ -174,7 +174,9 @@ function install_docker_ce() {
   yum-config-manager --enable docker-ce-nightly
   yum-config-manager --enable docker-ce-test
   yum install -y docker-ce docker-ce-cli containerd.io
-  setup_docker_storage_ce
+  if [ "${new}" != "" ]; then
+    setup_docker_storage_ce
+  fi
 
   insecure_registry=
   if [ "${registry}" != "" ]; then
@@ -205,11 +207,13 @@ function install_docker_ce() {
 }
 _EOF
 
-  systemctl stop docker
-
-  container-storage-setup --reset
-  rm -rf /var/lib/docker
-  container-storage-setup
+  # set up storage
+  if [ "${new}" != "" ]; then
+    systemctl stop docker
+    container-storage-setup --reset
+    rm -rf /var/lib/docker
+    container-storage-setup
+  fi
 
 }
 
@@ -267,6 +271,7 @@ function run() {
   if [ "$storage" == "" ]; then
     storage=/dev/sdb
   fi
+  
   if [ "$partition" == "" ]; then
     partition=1
   fi
@@ -315,9 +320,11 @@ function run() {
 
     remove_docker
 
-    log_info "create pv and vg"
-    yes | pvcreate -ff ${storage}${partition}
-    yes | vgcreate docker ${storage}${partition}
+    if [ "${new}" != "" ]; then
+      log_info "create pv and vg"
+      yes | pvcreate -ff ${storage}${partition}
+      yes | vgcreate docker ${storage}${partition}
+    fi
 
     if [ "${engine}" == "engine" ]; then
       log_info "install docker engine"
