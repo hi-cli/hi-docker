@@ -34,10 +34,10 @@ function run() {
     
     log_info "usages:"
     log_info "install docker,"
-    log_info "  hi docker install ce all new storage=/dev/sdb registry=[registry e.g. harbor.company.com]"
+    log_info "  hi docker install ce all new storage=/dev/sdb registry=[registry e.g. harbor.examples.com]"
     log_info "  assume that you have ansible installed before run below command"
     log_info "  hi docker restore pull registry="'"'.*'"'" "
-    log_info "  hi docker restore push registry="'"'.*'"'" new_registry=docker.vpclub.cn "
+    log_info "  hi docker restore push registry="'"'.*'"'" new_registry=docker.examples.com"
     log_info ""
     
     result=$?

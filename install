@@ -153,6 +153,12 @@ function install_docker_default() {
   /usr/bin/docker-storage-setup
 }
 
+function ensure_fstab() {
+  if [ "$(cat /etc/fstab | grep '/var/lib/docker' | wc -l)" == "0" ]; then 
+    echo "/dev/docker/docker /var/lib/docker                   xfs     defaults        0 0" >> /etc/fstab 
+  fi
+}
+
 function setup_docker_storage_ce(){
  if [ -f "/etc/sysconfig/docker-storage-setup" ];then
     rm -f /etc/sysconfig/docker-storage-setup
@@ -213,10 +219,10 @@ _EOF
     container-storage-setup --reset
     rm -rf /var/lib/docker
     container-storage-setup
+    ensure_fstab
   fi
 
 }
-
 
 function create_lvm_thin_pool() {
   lv_name=$1
